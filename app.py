@@ -78,13 +78,63 @@ if tahmin_butonu:
         eu = float(max(0.01, np.expm1(eu_ham)))
         jp = float(max(0.01, np.expm1(jp_ham)))
         
-        # Uzman kurallarımız
-        if ea_sp: 
-            eu = max(eu, na * 1.8)
-            if 'fifa' in oyun_adi.lower() or 'fc' in oyun_adi.lower():
+        # --- GELİŞTİRİLMİŞ UZMAN KURAL FİLTRESİ (HEURISTIC POST-PROCESSING) ---
+        oyun_adi_kucuk = oyun_adi.lower()
+
+        # 1. Platform ve Bölge İlişkisi
+        if platform in ["Xbox Series X", "Xbox One", "X360", "XB"]:
+            na *= 1.4      # Xbox Kuzey Amerika pazarında güçlüdür
+            jp *= 0.05     # Xbox Japonya pazarında satmaz
+        elif platform in ["PS5", "PS4", "PS3", "PS2", "PS"]:
+            eu *= 1.35     # PlayStation Avrupa pazarında güçlüdür
+        elif platform == "PC":
+            na *= 0.7
+            eu *= 0.8
+            jp *= 0.05     # Japonya'da fiziksel PC oyun pazarı zayıftır
+            if tur in ["Strategy", "Role-Playing"]:
+                na *= 1.8  # Strateji ve MMO oyunları PC ortamında yüksek satar
+                eu *= 1.6
+
+        # 2. Yayıncı, Tür ve Marka İlişkisi
+        # Electronic Arts (Spor Dinamikleri)
+        if yayinci == "Electronic Arts" and tur == "Sports":
+            if 'fifa' in oyun_adi_kucuk or 'fc' in oyun_adi_kucuk:
                 eu *= 4.5
+                na *= 1.2
+            elif 'madden' in oyun_adi_kucuk:
+                na *= 4.0
+                eu *= 0.2
+        
+        # Japon Yayıncılar (JRPG ve Global Markalar)
+        elif yayinci in ["Square Enix", "Capcom", "Nintendo"]:
+            jp *= 2.5
+            if 'resident evil' in oyun_adi_kucuk or 'final fantasy' in oyun_adi_kucuk:
+                na *= 1.8
+                eu *= 1.5
+
+        # Activision ve Nişancı (Shooter) Dominasyonu
+        elif yayinci == "Activision" and tur == "Shooter":
+            if 'call of duty' in oyun_adi_kucuk or 'cod' in oyun_adi_kucuk:
+                na *= 3.5
+                eu *= 2.5
+                jp *= 0.4
+
+        # 3. Nintendo Exclusivity (Özel Oyun) Kontrolü
+        if yayinci == "Nintendo":
+            if "Nintendo" in platform or platform in ["Wii", "DS", "3DS", "SNES", "N64"]:
+                jp *= 3.0
                 na *= 1.5
-        if tt_ac: na *= 3.0; eu *= 2.5
+            else:
+                # Nintendo oyunları kendi konsolu dışında çıkmaz, satış verisi kısıtlanır
+                na *= 0.01
+                eu *= 0.01
+                jp *= 0.01
+
+        # 4. Küresel Dev Seri (Outlier) Kontrolü
+        if 'gta' in oyun_adi_kucuk or 'grand theft auto' in oyun_adi_kucuk:
+            na *= 4.0
+            eu *= 4.5
+            jp *= 1.5
             
         toplam = na + eu + jp
         lig = "YILDIZ" if toplam >= 3.0 else "HİT" if toplam >= 0.8 else "STANDART" if toplam >= 0.2 else "DÜŞÜK"
@@ -94,7 +144,7 @@ if tahmin_butonu:
     kutu1, kutu2, kutu3, kutu4 = st.columns(4)
     kutu1.metric("🇺🇸 Kuzey Amerika", f"{na:.2f} M")
     kutu2.metric("🇪🇺 Avrupa", f"{eu:.2f} M")
-    kutu3.metric("🇯 Japonya", f"{jp:.2f} M")
+    kutu3.metric("🇯🇵 Japonya", f"{jp:.2f} M")
     kutu4.metric("🌍 DÜNYA TOPLAMI", f"{toplam:.2f} M")
     
     st.markdown("<br>", unsafe_allow_html=True)
