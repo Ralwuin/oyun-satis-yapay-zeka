@@ -59,13 +59,14 @@ if 'tahmin_edildi' not in st.session_state:
     st.session_state.na_taban = 0.0
     st.session_state.eu_taban = 0.0
     st.session_state.jp_taban = 0.0
+    st.session_state.t_skor_kayit = 0.0  # Hata veren t_skor buraya kilitlenecek
     st.session_state.oyun_adi_kayit = ""
     st.session_state.yayinci_kayit = ""
     st.session_state.tur_kayit = ""
 
 # 4. ARAYÜZ BAŞLIĞI
 st.title("🎮 Oyun Pazar Potansiyeli ve Karar Destek Sistemi")
-st.markdown("Bu sistem, **Makine Öğrenmesi (XGBoost)** ve **Uzman Kurallar** kullanarak oyun projelerinin platform bazlı küresel potansiyelini kıyaslamalı olarak analiz eder.")
+st.markdown("Bu sistem, **Makine Öğrenmesi (XGBoost)** ve **Uzman Kurallar** kullanarak oyun projelerinin platform bazlı küresel potainisiyeli kıyaslamalı olarak analiz eder.")
 st.divider()
 
 # 5. KULLANICI GİRİŞ FORMU
@@ -100,10 +101,11 @@ if tahmin_butonu:
         eu_ham = model_eu.predict(girdi).item()
         jp_ham = model_jp.predict(girdi).item()
         
-        # Sonuçları hafızaya kilitliyoruz (Rerun hatasını önlemek için)
+        # Sonuçları hafızaya kilitliyoruz (Rerun hatalarını önlemek için)
         st.session_state.na_taban = float(max(0.01, np.expm1(na_ham)))
         st.session_state.eu_taban = float(max(0.01, np.expm1(eu_ham)))
         st.session_state.jp_taban = float(max(0.01, np.expm1(jp_ham)))
+        st.session_state.t_skor_kayit = float(t_skor) # Değişkeni hafızaya aldık
         st.session_state.oyun_adi_kayit = oyun_adi
         st.session_state.yayinci_kayit = yayinci
         st.session_state.tur_kayit = tur
@@ -112,7 +114,6 @@ if tahmin_butonu:
 # 7. ÇOKLU SEKMELİ PANEL EKRANI (Hafızadan Okur)
 if st.session_state.tahmin_edildi:
     
-    # GÜNCEL LİSTE: PS4 tamamen çıkartıldı
     platformlar = ["PS5", "Xbox Series X", "Nintendo Switch", "PC"]
     
     st.subheader("📊 Platform Karşılaştırma Matrisi")
@@ -127,6 +128,7 @@ if st.session_state.tahmin_edildi:
             oyun_adi_kucuk = st.session_state.oyun_adi_kayit.lower()
             yayinci_kutu = st.session_state.yayinci_kayit
             tur_kutu = st.session_state.tur_kayit
+            t_skor_kutu = st.session_state.t_skor_kayit
 
             # --- GELİŞTİRİLMİŞ UZMAN KURAL MOTORU ---
             if platform in ["Xbox Series X", "Xbox One", "X360", "XB"]:
@@ -138,7 +140,7 @@ if st.session_state.tahmin_edildi:
                 na *= 0.7
                 eu *= 0.8
                 jp *= 0.05
-                if t_skor > 0 and tur_kutu in ["Strategy", "Role-Playing"]:
+                if t_skor_kutu > 0 and tur_kutu in ["Strategy", "Role-Playing"]:
                     na *= 1.8
                     eu *= 1.6
 
